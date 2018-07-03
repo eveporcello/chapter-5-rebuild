@@ -3,16 +3,25 @@ const { ApolloServer, gql } = require('apollo-server-express')
 
 const app = express()
 
+var photos = []
+
 const typeDefs = gql`
   type Query {
-    gnar: String
+    totalPhotos: Int!
+  }
+  type Mutation {
+    postPhoto(name: String!, description: String): Boolean!
   }
 `
 
 const resolvers = {
   Query: {
-    gnar() {
-      return 'gnarly!!!'
+    totalPhotos: () => photos.length
+  },
+  Mutation: {
+    postPhoto: (parent, args) => {
+      photos.push(args)
+      return true
     }
   }
 }
