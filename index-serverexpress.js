@@ -4,15 +4,15 @@ const { ApolloServer, gql } = require('apollo-server-express')
 const app = express()
 
 var _id = 0
-var photos = []
+var photos = require('./data/photos.json')
+var users = require('./data/users.json')
 
 const typeDefs = gql`
-  enum PhotoCategory {
-    SELFIE
-    PORTRAIT
-    ACTION
-    LANDSCAPE
-    GRAPHIC
+  type User {
+    githubLogin: ID!
+    name: String
+    avatar: String
+    postedPhotos: [Photo!]!
   }
 
   type Photo {
@@ -21,6 +21,15 @@ const typeDefs = gql`
     url: String!
     description: String
     category: PhotoCategory!
+    postedBy: User!
+  }
+
+  enum PhotoCategory {
+    SELFIE
+    PORTRAIT
+    ACTION
+    LANDSCAPE
+    GRAPHIC
   }
 
   input PostPhotoInput {
@@ -55,7 +64,15 @@ const resolvers = {
     }
   },
   Photo: {
-    url: parent => `http://yoursite.com/img/${parent.id}.jpg`
+    url: parent => `http://yoursite.com/img/${parent.id}.jpg`,
+    postedBy: parent => {
+      return users.find(u => u.githubLogin === parent.githubUser)
+    }
+  },
+  User: {
+    postedPhotos: parent => {
+      return photos.filter(p => p.githubUser === parent.githubLogin)
+    }
   }
 }
 
