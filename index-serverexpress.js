@@ -9,6 +9,8 @@ var users = require('./data/users.json')
 var tags = require('./data/tags.json')
 
 const typeDefs = gql`
+  scalar DateTime
+
   type User {
     githubLogin: ID!
     name: String
@@ -25,6 +27,7 @@ const typeDefs = gql`
     category: PhotoCategory!
     postedBy: User!
     taggedUsers: [User!]!
+    created: DateTime!
   }
 
   enum PhotoCategory {
@@ -60,7 +63,8 @@ const resolvers = {
     postPhoto(parent, args) {
       var newPhoto = {
         id: _id++,
-        ...args.input
+        ...args.input,
+        created: new Date()
       }
       photos.push(newPhoto)
       return newPhoto
