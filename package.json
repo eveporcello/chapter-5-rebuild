@@ -1,0 +1,17 @@
+{
+  "name": "chapter-5-rebuild",
+  "version": "0.0.0",
+  "description": "chapter 5 rebuild",
+  "main": "index.js",
+  "author": "Moon Highway",
+  "license": "MIT",
+  "scripts": {
+    "start": "nodemon ."
+  },
+  "dependencies": {
+    "apollo-server": "^2.0.0-rc.6",
+    "apollo-server-express": "^2.0.0-rc.6",
+    "graphql": "^0.13.2",
+    "nodemon": "^1.17.2"
+  }
+}
