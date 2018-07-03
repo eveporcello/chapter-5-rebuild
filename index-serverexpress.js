@@ -7,10 +7,25 @@ var _id = 0
 var photos = []
 
 const typeDefs = gql`
+  enum PhotoCategory {
+    SELFIE
+    PORTRAIT
+    ACTION
+    LANDSCAPE
+    GRAPHIC
+  }
+
   type Photo {
     id: ID!
     name: String!
     url: String!
+    description: String
+    category: PhotoCategory!
+  }
+
+  input PostPhotoInput {
+    name: String!
+    category: PhotoCategory = PORTRAIT
     description: String
   }
 
@@ -18,8 +33,9 @@ const typeDefs = gql`
     totalPhotos: Int!
     allPhotos: [Photo!]!
   }
+
   type Mutation {
-    postPhoto(name: String!, description: String): Photo!
+    postPhoto(input: PostPhotoInput!): Photo!
   }
 `
 
@@ -29,12 +45,12 @@ const resolvers = {
     allPhotos: () => photos
   },
   Mutation: {
-    postPhoto: (parent, args) => {
+    postPhoto(parent, args) {
       var newPhoto = {
         id: _id++,
-        ...args
+        ...args.input
       }
-      photos.push(args)
+      photos.push(newPhoto)
       return newPhoto
     }
   },
