@@ -2,7 +2,8 @@ const express = require('express')
 const { ApolloServer } = require('apollo-server-express')
 const { MongoClient } = require('mongodb')
 const { readFileSync } = require('fs')
-var resolvers = require('./resolvers')
+const expressPlayground = require('graphql-playground-middleware-express').default
+const resolvers = require('./resolvers')
 
 require('dotenv').config()
 var typeDefs = readFileSync('./typeDefs.graphql', 'UTF-8')
@@ -21,10 +22,13 @@ async function start() {
       const githubToken = token.replace('bearer ', '')
       const currentUser = await db.collection('users').findOne({ githubToken })
       return { db, currentUser }
-    }
+    },
+    playground: '/playground'
   })
 
   server.applyMiddleware({ app })
+
+  app.get('/playground', expressPlayground({ endpoint: '/graphql' }))
 
   app.get('/', (req, res) => {
     let url = `https://github.com/login/oauth/authorize?client_id=${process.env.CLIENT_ID}&scope=user`
