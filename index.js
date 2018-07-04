@@ -2,13 +2,15 @@ const { ApolloServer, gql } = require('apollo-server')
 const { MongoClient } = require('mongodb')
 const fs = require('fs')
 
-var typeDefs = gql`
+require('dotenv').config()
+
+const typeDefs = gql`
   ${fs.readFileSync('./typeDefs.graphql', 'UTF-8')}
 `
-var resolvers = require('./resolvers')
+const resolvers = require('./resolvers')
 
 async function start() {
-  const MONGO_DB = 'mongodb://localhost:27017/graphql-photos'
+  const MONGO_DB = process.env.DB_HOST
   const client = await MongoClient.connect(
     MONGO_DB,
     { useNewUrlParser: true }
