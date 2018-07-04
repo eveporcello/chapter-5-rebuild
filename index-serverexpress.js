@@ -1,117 +1,36 @@
 const express = require('express')
 const { ApolloServer, gql } = require('apollo-server-express')
+const { MongoClient } = require('mongodb')
+const fs = require('fs')
 
 const app = express()
 
-var _id = 0
-var photos = require('./data/photos.json')
-var users = require('./data/users.json')
-var tags = require('./data/tags.json')
-
-const typeDefs = gql`
-  scalar DateTime
-
-  type User {
-    githubLogin: ID!
-    name: String
-    avatar: String
-    postedPhotos: [Photo!]!
-    inPhotos: [Photo!]!
-  }
-
-  type Photo {
-    id: ID!
-    name: String!
-    url: String!
-    description: String
-    category: PhotoCategory!
-    postedBy: User!
-    taggedUsers: [User!]!
-    created: DateTime!
-  }
-
-  enum PhotoCategory {
-    SELFIE
-    PORTRAIT
-    ACTION
-    LANDSCAPE
-    GRAPHIC
-  }
-
-  input PostPhotoInput {
-    name: String!
-    category: PhotoCategory = PORTRAIT
-    description: String
-  }
-
-  type Query {
-    totalPhotos: Int!
-    allPhotos: [Photo!]!
-  }
-
-  type Mutation {
-    postPhoto(input: PostPhotoInput!): Photo!
-  }
+var typeDefs = gql`
+  ${fs.readFileSync('./typeDefs.graphql', 'UTF-8')}
 `
+var resolvers = require('./resolvers')
 
-const resolvers = {
-  Query: {
-    totalPhotos: () => photos.length,
-    allPhotos: () => photos
-  },
-  Mutation: {
-    postPhoto(parent, args) {
-      var newPhoto = {
-        id: _id++,
-        ...args.input,
-        created: new Date()
-      }
-      photos.push(newPhoto)
-      return newPhoto
-    }
-  },
-  Photo: {
-    url: parent => `http://yoursite.com/img/${parent.id}.jpg`,
-    postedBy: parent => {
-      return users.find(u => u.githubLogin === parent.githubUser)
-    },
-    taggedUsers: parent =>
-      tags
+async function start() {
+  const MONGO_DB = 'mongodb://localhost:27017/graphql-photos'
+  const client = await MongoClient.connect(
+    MONGO_DB,
+    { useNewUrlParser: true }
+  )
+  const db = client.db()
 
-        // Returns an array of tags that only contain the current photo
-        .filter(tag => tag.photoID === parent.id)
+  const context = { db }
 
-        // Converts the array of tags into an array of userIDs
-        .map(tag => tag.userID)
+  const server = new ApolloServer({ typeDefs, resolvers, context })
 
-        // Converts array of userIDs into an array of user objects
-        .map(userID => users.find(u => u.githubLogin === userID))
-  },
-  User: {
-    postedPhotos: parent => {
-      return photos.filter(p => p.githubUser === parent.githubLogin)
-    },
-    inPhotos: parent =>
-      tags
+  server.applyMiddleware({ app })
 
-        // Returns an array of tags that only contain the current user
-        .filter(tag => tag.userID === parent.id)
+  app.get('/', (req, res) => res.end('Welcome to the PhotoShare API'))
 
-        // Converts the array of tags into an array of photoIDs
-        .map(tag => tag.photoID)
-
-        // Converts array of photoIDs into an array of photo objects
-        .map(photoID => photos.find(p => p.id === photoID))
-  }
+  app.listen({ port: 4000 }, () =>
+    console.log(
+      `GraphQL Server running at http://localhost:4000${server.graphqlPath}`
+    )
+  )
 }
 
-const server = new ApolloServer({ typeDefs, resolvers })
-server.applyMiddleware({ app })
-
-app.get('/', (req, res) => res.end('Welcome to the PhotoShare API'))
-
-app.listen({ port: 4000 }, () =>
-  console.log(
-    `GraphQL Server running at http://localhost:4000${server.graphqlPath}`
-  )
-)
+start()
