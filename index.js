@@ -1,31 +1,39 @@
-const { ApolloServer, gql } = require('apollo-server')
+const express = require('express')
+const { ApolloServer } = require('apollo-server-express')
 const { MongoClient } = require('mongodb')
-const fs = require('fs')
+const { readFileSync } = require('fs')
+var resolvers = require('./resolvers')
 
 require('dotenv').config()
-
-const typeDefs = gql`
-  ${fs.readFileSync('./typeDefs.graphql', 'UTF-8')}
-`
-const resolvers = require('./resolvers')
+var typeDefs = readFileSync('./typeDefs.graphql', 'UTF-8')
 
 async function start() {
+  const app = express()
   const MONGO_DB = process.env.DB_HOST
-  const client = await MongoClient.connect(
-    MONGO_DB,
-    { useNewUrlParser: true }
-  )
+  const client = await MongoClient.connect(MONGO_DB, { useNewUrlParser: true })
   const db = client.db()
 
-  const context = { db }
+  const server = new ApolloServer({
+    typeDefs,
+    resolvers,
+    context: async ({ req }) => {
+      const token = req.headers.authorization || ''
+      const githubToken = token.replace('bearer ', '')
+      const currentUser = await db.collection('users').findOne({ githubToken })
+      return { db, currentUser }
+    }
+  })
 
-  const server = new ApolloServer({ typeDefs, resolvers, context })
+  server.applyMiddleware({ app })
 
-  server
-    .listen()
-    .then(({ port }) =>
-      console.log(`GraphQL Server Running on http://localhost:${port}`)
-    )
+  app.get('/', (req, res) => {
+    let url = `https://github.com/login/oauth/authorize?client_id=${process.env.CLIENT_ID}&scope=user`
+    res.end(`<a href="${url}">Sign In with Github</a>`)
+  })
+
+  app.listen({ port: 4000 }, () =>
+    console.log(`GraphQL Server running at http://localhost:4000${server.graphqlPath}`)
+  )
 }
 
 start()
