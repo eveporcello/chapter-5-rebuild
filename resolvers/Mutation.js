@@ -1,5 +1,6 @@
 const { authorizeWithGithub } = require('../lib')
 const fetch = require('node-fetch')
+const { ObjectID } = require('mongodb')
 
 module.exports = {
 
@@ -20,6 +21,16 @@ module.exports = {
 
       return newPhoto
       
+    },
+
+    async tagPhoto(parent, args, { db }) {
+
+      await db.collection('tags')
+        .replaceOne(args, args, { upsert: true })
+      
+      return db.collection('photos')
+        .findOne({ _id: ObjectID(args.photoID) }) 
+  
     },
 
     async githubAuth(parent, { code }, { db }) {
